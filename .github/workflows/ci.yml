@@ -1,0 +1,57 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - run: pytest -q
+      - name: Build sample report
+        run: schema-drift compare --ddl examples/expected_ddl.sql --catalog examples/actual_columns.csv --out drift_report.xlsx || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: drift-report
+          path: drift_report.xlsx
+
+  postgres-integration:
+    # Export a real PostgreSQL catalog, compare it, then find and fix sequence drift.
+    runs-on: ubuntu-latest
+    needs: test
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: demo
+          POSTGRES_PASSWORD: demo
+          POSTGRES_DB: demo
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U demo" --health-interval 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: demo
+      PGPASSWORD: demo
+      PGDATABASE: demo
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e .
+      - name: Load the drifted demo database
+        run: psql -v ON_ERROR_STOP=1 -f examples/demo_postgres.sql
+      - name: Export the live catalog and compare
+        run: |
+          psql --csv -f sql/export_columns_postgres.sql -o live_columns.csv
+          schema-drift compare --ddl examples/expected_ddl.sql --catalog live_columns.csv --out live_report.xlsx && exit 1 || test $? -eq 2
+      - name: Detect sequence drift, fix it, prove inserts work
+        run: |
+          psql --csv -f sql/sequence_drift_postgres.sql -o sequence_states.csv
+          grep -q application_id_seq sequence_states.csv
+          schema-drift sequences --states sequence_states.csv --dialect postgres | grep -v '^--' > fix_sequences.sql
+          psql -v ON_ERROR_STOP=1 -f fix_sequences.sql
+          psql -v ON_ERROR_STOP=1 -c "INSERT INTO application (applicant_name) VALUES ('after fix')"
