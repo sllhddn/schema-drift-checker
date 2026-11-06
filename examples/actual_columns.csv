@@ -1,0 +1,29 @@
+table_name,column_name,data_type,char_length,precision,scale,nullable
+land_parcel,id,bigint,,,,N
+land_parcel,lot_no,character varying,20,,,N
+land_parcel,district_code,character varying,10,,,Y
+land_parcel,area,numeric,,16,4,Y
+land_parcel,area_unit,character varying,5,,,Y
+land_parcel,registered_on,timestamp without time zone,,,,Y
+land_parcel,remarks,character varying,1000,,,Y
+land_parcel,legacy_ref,character varying,50,,,Y
+application,id,bigint,,,,N
+application,parcel_id,bigint,,,,Y
+application,applicant_name,character varying,250,,,N
+application,status,character varying,20,,,Y
+application,submitted_on,timestamp without time zone,,,,Y
+application,fee_amount,numeric,,12,2,Y
+application,notes,text,,,,Y
+payment,id,bigint,,,,N
+payment,application_id,bigint,,,,N
+payment,payer_name,character varying,100,,,Y
+payment,amount,numeric,,12,2,N
+payment,paid_on,timestamp without time zone,,,,Y
+ref_status,code,character varying,20,,,N
+ref_status,description,character varying,200,,,Y
+ref_status,is_active,character,1,,,Y
+payment_bak_20240115,id,bigint,,,,N
+payment_bak_20240115,amount,numeric,,12,2,Y
+tmp_import_parcels,lot_no,text,,,,Y
+survey_request,id,bigint,,,,N
+survey_request,parcel_id,bigint,,,,Y

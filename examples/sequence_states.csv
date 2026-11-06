@@ -1,0 +1,5 @@
+sequence,table,last_value,max_id
+seq_land_parcel,land_parcel,120450,120449
+seq_application,application,49870,50213
+seq_payment,payment,880001,880120
+seq_audit_log,audit_log,9000001,8999650
